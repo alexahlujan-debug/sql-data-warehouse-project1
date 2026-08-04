@@ -1,0 +1,53 @@
+/* This section focuses on data analysis I came up with on my own! I hope to continue adding to this to get more practice and 
+get more comfortable with syntax. */
+--total revenue by category
+SELECT
+p.product_key,
+p.product_name,
+SUM(f.sales_amount) AS product_revenue
+FROM gold.fact_sales f
+LEFT JOIN gold.dim_products p
+ON f.product_key = p.product_key
+GROUP BY p.product_key, p.product_name
+ORDER BY SUM(f.sales_amount) DESC
+
+--my analysis contd: total revenue by subcategory
+SELECT
+p.product_key,
+p.subcategory,
+SUM(f.sales_amount) subcat_rev
+FROM gold.fact_sales f
+LEFT JOIN gold.dim_products p
+ON f.product_key = p.product_key
+GROUP BY p.subcategory, p.product_key
+ORDER BY SUM(f.sales_amount) DESC
+
+
+/*which categories sell better/generate more revenue in certain months, 
+only display highest revenue in one month for each cat(This was definitely challenging) */
+
+WITH month_rev AS (
+SELECT
+p.category,
+DATENAME(month,f.order_date) Months,
+SUM(f.sales_amount) sales_by_category
+FROM gold.fact_sales f
+LEFT JOIN gold.dim_products p
+ON f.product_key = p.product_key
+GROUP BY p.category, DATENAME(month,f.order_date)
+),
+month_rev_2 AS(
+SELECT
+category,
+Months,
+sales_by_category,
+ROW_NUMBER() OVER(PARTITION BY category ORDER BY sales_by_category DESC) ranking
+FROM month_rev)
+SELECT
+category,
+Months,
+sales_by_category
+FROM month_rev_2
+WHERE ranking =1
+ORDER BY sales_by_category DESC
+--from this we can conclude december is the month we see the highest revenue for each product
